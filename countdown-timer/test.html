@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试倒计时功能</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #testTimer {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>倒计时功能测试</h1>
+
+    <div class="test-box">
+        <h2>手动测试</h2>
+        <p>点击按钮测试倒计时功能：</p>
+        <button id="startTestBtn">开始3秒倒计时</button>
+        <button id="resetTestBtn">重置</button>
+        <div id="testTimer">00:00</div>
+    </div>
+
+    <div class="test-box">
+        <h2>查看控制台日志</h2>
+        <p>按F12打开浏览器控制台查看详细信息</p>
+        <p>检查是否有JavaScript错误</p>
+    </div>
+
+    <div class="test-box">
+        <h2>页面访问地址</h2>
+        <p>http://localhost:8000</p>
+    </div>
+
+    <script>
+        let timerInterval = null;
+        let seconds = 0;
+
+        document.getElementById('startTestBtn').addEventListener('click', () => {
+            seconds = 3;
+            updateDisplay();
+            console.log('开始倒计时，总时间: 3秒');
+
+            timerInterval = setInterval(() => {
+                seconds--;
+                updateDisplay();
+                console.log(`倒计时中: ${seconds}秒`);
+
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    console.log('倒计时结束！');
+                    document.getElementById('testTimer').textContent = '🎉 时间到！';
+                }
+            }, 1000);
+        });
+
+        document.getElementById('resetTestBtn').addEventListener('click', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            seconds = 0;
+            updateDisplay();
+            console.log('倒计时已重置');
+        });
+
+        function updateDisplay() {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('testTimer').textContent =
+                `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

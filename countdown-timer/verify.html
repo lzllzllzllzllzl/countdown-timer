@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒计时功能验证</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover { background: #0056b3; }
+        #timer {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            color: #007bff;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 倒计时功能验证页面</h1>
+
+    <div class="test-box">
+        <h2>测试1: JavaScript基本功能</h2>
+        <button id="testJS">测试JavaScript</button>
+        <div id="jsStatus"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>测试2: 基础倒计时功能</h2>
+        <p>点击按钮开始5秒倒计时：</p>
+        <button id="startBtn">开始5秒倒计时</button>
+        <button id="pauseBtn" disabled>暂停</button>
+        <button id="resetBtn" disabled>重置</button>
+        <div id="timer">00:05</div>
+    </div>
+
+    <div class="test-box">
+        <h2>测试3: 验证主页面文件</h2>
+        <div id="fileCheck"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>测试4: 主页面链接</h2>
+        <p><a href="index.html" target="_blank">打开主页面（新标签页）</a></p>
+        <p><a href="simple-test.html" target="_blank">打开简化测试页面（新标签页）</a></p>
+        <p>💡 提示：打开后按F12查看控制台日志</p>
+    </div>
+
+    <script>
+        // 测试1: JavaScript基本功能
+        document.getElementById('testJS').addEventListener('click', function() {
+            const status = document.getElementById('jsStatus');
+            status.innerHTML = '<div class="status success">✅ JavaScript工作正常！</div>';
+            
+            // 测试ES6特性
+            try {
+                const arr = [1, 2, 3];
+                const doubled = arr.map(x => x * 2);
+                const [a, b, c] = doubled;
+                status.innerHTML += '<div class="status success">✅ ES6特性支持正常！</div>';
+            } catch (e) {
+                status.innerHTML += '<div class="status error">❌ ES6特性不支持：' + e.message + '</div>';
+            }
+        });
+
+        // 测试2: 基础倒计时
+        let interval = null;
+        let seconds = 5;
+        let isRunning = false;
+
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function updateTimer() {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        startBtn.addEventListener('click', function() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            resetBtn.disabled = false;
+
+            interval = setInterval(() => {
+                seconds--;
+                updateTimer();
+
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    isRunning = false;
+                    timerDisplay.textContent = '🎉 时间到！';
+                    startBtn.disabled = false;
+                    pauseBtn.disabled = true;
+                    
+                    setTimeout(() => {
+                        alert('倒计时结束！');
+                    }, 100);
+                }
+            }, 1000);
+        });
+
+        pauseBtn.addEventListener('click', function() {
+            if (!isRunning) return;
+            
+            clearInterval(interval);
+            isRunning = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+        });
+
+        resetBtn.addEventListener('click', function() {
+            clearInterval(interval);
+            isRunning = false;
+            seconds = 5;
+            updateTimer();
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            resetBtn.disabled = true;
+        });
+
+        // 测试3: 验证文件
+        window.addEventListener('load', function() {
+            const fileCheck = document.getElementById('fileCheck');
+            const files = ['index.html', 'script.js', 'presets.js', 'styles.css'];
+            
+            files.forEach(file => {
+                fetch(file)
+                    .then(response => {
+                        if (response.ok) {
+                            fileCheck.innerHTML += `<div class="status success">✅ ${file} 存在且可访问</div>`;
+                        } else {
+                            fileCheck.innerHTML += `<div class="status error">❌ ${file} 返回状态码 ${response.status}</div>`;
+                        }
+                    })
+                    .catch(error => {
+                        fileCheck.innerHTML += `<div class="status error">❌ ${file} 加载失败：${error.message}</div>`;
+                    });
+            });
+        });
+
+        // 自动运行测试1
+        setTimeout(() => {
+            document.getElementById('testJS').click();
+        }, 500);
+    </script>
+</body>
+</html>

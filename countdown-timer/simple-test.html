@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简化版倒计时测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .preset-card {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .preset-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        .timer-card {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        .timer-display {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            color: #007bff;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer-name {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #00d4ff);
+            transition: width 0.1s linear;
+        }
+        .log {
+            background: #212529;
+            color: #00ff00;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 倒计时功能测试</h1>
+        
+        <h2>预设场景</h2>
+        <div class="preset-grid" id="presetGrid">
+            <div class="preset-card" data-minutes="1">
+                <div>1分钟</div>
+            </div>
+            <div class="preset-card" data-minutes="2">
+                <div>2分钟</div>
+            </div>
+            <div class="preset-card" data-minutes="5">
+                <div>5分钟</div>
+            </div>
+        </div>
+
+        <h2>活动倒计时</h2>
+        <div id="timers"></div>
+
+        <h2>调试日志</h2>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const timers = new Map();
+        let timerId = 0;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function createTimer(minutes, name) {
+            timerId++;
+            const id = timerId;
+            const totalSeconds = minutes * 60;
+
+            log(`创建倒计时 #${id}: ${name}, ${minutes}分钟`);
+
+            const timer = {
+                id: id,
+                name: name,
+                totalSeconds: totalSeconds,
+                remainingSeconds: totalSeconds,
+                interval: null,
+                isRunning: false
+            };
+
+            timers.set(id, timer);
+            renderTimer(timer);
+            startTimer(id);
+        }
+
+        function renderTimer(timer) {
+            const container = document.getElementById('timers');
+            const div = document.createElement('div');
+            div.className = 'timer-card';
+            div.id = `timer-${timer.id}`;
+            
+            div.innerHTML = `
+                <div class="timer-name">${timer.name}</div>
+                <div class="timer-display" id="display-${timer.id}">${formatTime(timer.remainingSeconds)}</div>
+                <div>
+                    <button class="btn btn-primary" id="start-${timer.id}">开始</button>
+                    <button class="btn btn-warning" id="pause-${timer.id}" style="display:none">暂停</button>
+                    <button class="btn btn-danger" id="reset-${timer.id}">重置</button>
+                    <button class="btn btn-danger" id="delete-${timer.id}">删除</button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-${timer.id}" style="width: 100%"></div>
+                </div>
+            `;
+
+            container.appendChild(div);
+
+            document.getElementById(`start-${timer.id}`).addEventListener('click', () => startTimer(timer.id));
+            document.getElementById(`pause-${timer.id}`).addEventListener('click', () => pauseTimer(timer.id));
+            document.getElementById(`reset-${timer.id}`).addEventListener('click', () => resetTimer(timer.id));
+            document.getElementById(`delete-${timer.id}`).addEventListener('click', () => deleteTimer(timer.id));
+
+            log(`倒计时器 #${timer.id} 已渲染`);
+        }
+
+        function startTimer(id) {
+            const timer = timers.get(id);
+            if (!timer || timer.isRunning) return;
+
+            timer.isRunning = true;
+            log(`倒计时 #${id} 开始运行`);
+
+            document.getElementById(`start-${id}`).style.display = 'none';
+            document.getElementById(`pause-${id}`).style.display = 'inline-block';
+
+            timer.interval = setInterval(() => {
+                timer.remainingSeconds--;
+                updateDisplay(timer);
+
+                if (timer.remainingSeconds <= 0) {
+                    finishTimer(id);
+                }
+            }, 1000);
+        }
+
+        function pauseTimer(id) {
+            const timer = timers.get(id);
+            if (!timer || !timer.isRunning) return;
+
+            timer.isRunning = false;
+            clearInterval(timer.interval);
+            log(`倒计时 #${id} 已暂停`);
+
+            document.getElementById(`start-${id}`).style.display = 'inline-block';
+            document.getElementById(`pause-${id}`).style.display = 'none';
+        }
+
+        function resetTimer(id) {
+            const timer = timers.get(id);
+            if (!timer) return;
+
+            pauseTimer(id);
+            timer.remainingSeconds = timer.totalSeconds;
+            updateDisplay(timer);
+            log(`倒计时 #${id} 已重置`);
+        }
+
+        function deleteTimer(id) {
+            const timer = timers.get(id);
+            if (!timer) return;
+
+            if (timer.isRunning) {
+                clearInterval(timer.interval);
+            }
+
+            timers.delete(id);
+            document.getElementById(`timer-${id}`).remove();
+            log(`倒计时 #${id} 已删除`);
+        }
+
+        function finishTimer(id) {
+            const timer = timers.get(id);
+            if (!timer) return;
+
+            timer.isRunning = false;
+            clearInterval(timer.interval);
+            
+            log(`🎉 倒计时 #${id} 结束！`);
+            alert(`倒计时 "${timer.name}" 结束了！`);
+
+            document.getElementById(`start-${id}`).style.display = 'inline-block';
+            document.getElementById(`pause-${id}`).style.display = 'none';
+        }
+
+        function updateDisplay(timer) {
+            const display = document.getElementById(`display-${timer.id}`);
+            const progress = document.getElementById(`progress-${timer.id}`);
+            
+            display.textContent = formatTime(timer.remainingSeconds);
+            const percent = (timer.remainingSeconds / timer.totalSeconds) * 100;
+            progress.style.width = `${percent}%`;
+        }
+
+        // 初始化预设卡片点击事件
+        document.getElementById('presetGrid').addEventListener('click', (e) => {
+            const card = e.target.closest('.preset-card');
+            if (card) {
+                const minutes = parseInt(card.dataset.minutes);
+                createTimer(minutes, `${minutes}分钟倒计时`);
+            }
+        });
+
+        log('页面加载完成');
+        log('点击上方预设卡片开始测试');
+    </script>
+</body>
+</html>
